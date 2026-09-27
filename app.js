@@ -1,24 +1,9 @@
 /* SEERTECH · Órdenes de Trabajo — app para técnicos y administrador */
 'use strict';
-const VERSION_APP = '1.0.0';
+const VERSION_APP = '1.2.0';
 const MAX_FOTOS = 8;
-const SERVICIOS = ['Limpieza de campana extractora', 'Limpieza de filtros de grasa', 'Limpieza de ductos',
-  'Limpieza de motor / turbina', 'Desengrasado profundo', 'Lavado a presión'];
-const TAREAS = [
-  { cat: 'Inspección inicial', items: ['Evaluación del nivel de grasa acumulada', 'Verificación de estado general de la campana',
-    'Revisión de accesos y área de trabajo', 'Protección de piso y equipos cercanos'] },
-  { cat: 'Filtros', items: ['Retiro de filtros de grasa / baffle', 'Desengrasado en tina de inmersión', 'Cepillado y enjuague de filtros',
-    'Secado y reinstalación de filtros', 'Verificación de filtros dañados o faltantes'] },
-  { cat: 'Campana y superficies', items: ['Desengrasado de superficie interior de campana', 'Desengrasado de superficie exterior de campana',
-    'Limpieza de canaletas colectoras de grasa', 'Limpieza de charola / recipiente de grasa', 'Pulido de acero inoxidable'] },
-  { cat: 'Ductos y extracción', items: ['Limpieza de ductos accesibles', 'Revisión de acumulación de grasa en ductos',
-    'Verificación de sellos y uniones de ductos', 'Revisión de compuertas de acceso'] },
-  { cat: 'Motor y ventilador', items: ['Limpieza de aspas del extractor / turbina', 'Limpieza de carcasa del motor',
-    'Verificación de funcionamiento del motor', 'Revisión de vibración y ruido anormal', 'Lubricación de rodamientos (si aplica)'] },
-  { cat: 'Verificación final', items: ['Prueba de encendido y succión', 'Verificación de ausencia de residuos de grasa',
-    'Revisión de conexiones eléctricas del sistema', 'Limpieza del área de trabajo post-servicio'] }
-];
-const TEC = ['marca', 'tipo', 'dim', 'filtros', 'tfiltro', 'motor', 'ductos', 'ubic'];
+const TIPOS = window.TIPOS_OT, ORDEN_TIPOS = window.ORDEN_TIPOS;
+const tipoDe = ot => (ot && TIPOS[ot.tipo]) ? ot.tipo : 'campana';
 const CLI = ['nombre', 'comercial', 'contacto', 'telefono', 'direccion', 'zona'];
 
 const $ = (s, el) => (el || document).querySelector(s);
@@ -262,8 +247,8 @@ async function pintarMis() {
       const c = r.ot.cliente || {};
       const chip = r.estado === 'borrador' ? '<span class="chip borr">Borrador</span>'
         : r.estado === 'error' ? '<span class="chip err">Error al enviar</span>' : '<span class="chip pend">Pendiente de envío</span>';
-      return `<div class="item" data-local="${r.idLocal}"><div><b>${esc(c.comercial || c.nombre || 'Sin cliente')}</b>
-        <small>${fechaCorta(r.ot.fecha)} · ${(r.ot.fotos || []).length} fotos${r.error ? ' · ' + esc(r.error) : ''}</small></div><div class="der">${chip}</div></div>`;
+      return `<div class="item" data-local="${r.idLocal}"><div><span class="tipo-ic">${TIPOS[tipoDe(r.ot)].icono}</span><b>${esc(c.comercial || c.nombre || 'Sin cliente')}</b>
+        <small>${esc(r.ot.servicio || TIPOS[tipoDe(r.ot)].nombre)} · ${fechaCorta(r.ot.fecha)} · ${(r.ot.fotos || []).length} fotos${r.error ? ' · ' + esc(r.error) : ''}</small></div><div class="der">${chip}</div></div>`;
     }).join('');
   }
   if (!esAdmin()) {
@@ -276,8 +261,8 @@ async function pintarMis() {
 }
 function itemEnviada(o) {
   const nueva = esAdmin() && !o.revision && o.recibida && (Date.now() - new Date(o.recibida.replace(' ', 'T')).getTime() < 86400000);
-  return `<div class="item ${o.correccion ? 'corr' : nueva ? 'nueva' : ''}" data-num="${esc(o.numero)}"><div><b>${esc(o.numero)}</b> · ${esc(o.cliente)}
-    <small>${esAdmin() ? esc(o.tecnico) + ' · ' : ''}${fechaCorta(o.fecha)}${o.tipoVisita ? ' · ' + esc(o.tipoVisita) : ''}</small></div>
+  return `<div class="item ${o.correccion ? 'corr' : nueva ? 'nueva' : ''}" data-num="${esc(o.numero)}"><div><span class="tipo-ic">${TIPOS[tipoDe(o)].icono}</span><b>${esc(o.numero)}</b> · ${esc(o.cliente)}
+    <small>${esc(o.servicio || TIPOS[tipoDe(o)].nombre)} · ${esAdmin() ? esc(o.tecnico) + ' · ' : ''}${fechaCorta(o.fecha)}${o.tipoVisita ? ' · ' + esc(o.tipoVisita) : ''}</small></div>
     <div class="der">${nueva ? '<span class="chip ok">Nueva</span>' : ''}${chipEstado(o.estado)}${o.revision ? `<span class="chip rev">Rev ${o.revision}</span>` : ''}${o.correccion ? '<span class="chip pend">Corrección solicitada</span>' : ''}</div></div>`;
 }
 function pintarRecibidas() {
@@ -300,10 +285,11 @@ function cargarCliente(v) {
   const c = S.clientes.find(x => etiqueta(x) === v);
   if (!c) return;
   CLI.forEach(k => campo('c.' + k).value = c[k] || '');
-  let tec = 0;
-  TEC.forEach(k => { if (c.tec && c.tec[k]) { campo('t.' + k).value = c.tec[k]; tec++; } });
+  let tec = 0; const tipo = S.ot.tipo;
+  const guardado = tipo === 'campana' ? c.tec : (c.equipos || {})[tipo];
+  TIPOS[tipo].campos.forEach(f => { if (guardado && guardado[f.k]) { campo('t.' + f.k).value = guardado[f.k]; tec++; } });
   S.ot.correo = c.correo || '';
-  $('#cli-msg').textContent = '✔ Datos de ' + (c.comercial || c.nombre) + ' cargados' + (tec ? ' (incluye datos de la campana)' : '');
+  $('#cli-msg').textContent = '✔ Datos de ' + (c.comercial || c.nombre) + ' cargados' + (tec ? ' (incluye datos del equipo)' : '');
   autoguardar();
 }
 $('#cli-buscar').addEventListener('change', e => cargarCliente(e.target.value));
@@ -313,7 +299,7 @@ $('#cli-guardar').onclick = async () => {
   if (!ot.cliente.nombre) { toast('Escriba al menos el nombre del cliente.'); return; }
   cargando('Guardando cliente…');
   try {
-    const r = await api('guardarCliente', { cliente: Object.assign({}, ot.cliente, { tec: ot.tec }) });
+    const r = await api('guardarCliente', { cliente: Object.assign({}, ot.cliente, { tec: ot.tec, tipo: ot.tipo }) });
     S.clientes = r.clientes; LS.set('clientes', S.clientes); llenarClientes();
     toast('💾 Cliente guardado. Ya lo ven todos los técnicos.');
   } catch (e) { toast(e.codigo === 'offline' ? 'Necesita señal para guardar el cliente.' : e.message); }
@@ -322,33 +308,66 @@ $('#cli-guardar').onclick = async () => {
 
 /* ---------------- formulario ---------------- */
 function campo(n) { return $(`#ot-form [name="${n}"]`); }
-function plantilla() {
+function plantilla(tipo) {
   const h = hoy();
-  return { fecha: h.fecha, hora: h.hora, tipoVisita: '', estado: '', servicios: [], cliente: {}, tec: {}, checklist: [],
+  return { tipo, titulo: '', fecha: h.fecha, hora: h.hora, tipoVisita: '', estado: '', servicios: [], cliente: {}, tec: {}, checklist: [],
     descripcion: '', proxima: {}, observaciones: '', fotos: [],
     firmas: { tecnico: { nombre: esAdmin() ? '' : S.auth.nombre, img: '' }, supervisor: { nombre: '', img: '' }, cliente: { nombre: '', img: '' } },
-    servicio: 'Limpieza de campana extractora', app: VERSION_APP };
+    servicio: TIPOS[tipo].libre ? '' : TIPOS[tipo].nombre, app: VERSION_APP };
 }
-function pintarServicios(sel) {
-  $('#servicios').innerHTML = SERVICIOS.map(s => `<label><input type="checkbox" name="servicio" value="${esc(s)}" ${sel.includes(s) ? 'checked' : ''}><span>${esc(s)}</span></label>`).join('');
+function pintarServicios(sel, tipo) {
+  const lista = TIPOS[tipo].servicios;
+  $('#lbl-servicios').style.display = lista.length ? '' : 'none';
+  $('#servicios').innerHTML = lista.map(s => `<label><input type="checkbox" name="servicio" value="${esc(s)}" ${sel.includes(s) ? 'checked' : ''}><span>${esc(s)}</span></label>`).join('');
 }
-function pintarChecklist(lista) {
-  const m = {}; (lista || []).forEach(it => m[it.cat + '|' + it.tarea] = it);
+function pintarChecklist(lista, tipo) {
+  lista = lista || [];
+  const m = {}; lista.forEach(it => m[it.cat + '|' + it.tarea] = it);
+  const grupos = TIPOS[tipo].tareas.map(g => ({ cat: g.cat, items: g.items.map(t => ({ tarea: t, extra: false })) }));
+  const fijas = new Set(); grupos.forEach(g => g.items.forEach(t => fijas.add(g.cat + '|' + t.tarea)));
+  lista.filter(it => !fijas.has(it.cat + '|' + it.tarea)).forEach(it => {
+    let g = grupos.find(x => x.cat === it.cat);
+    if (!g) { g = { cat: it.cat, items: [] }; grupos.push(g); }
+    g.items.push({ tarea: it.tarea, extra: true });
+  });
   let h = '', i = 0;
-  TAREAS.forEach(g => {
+  grupos.forEach(g => {
     h += `<div class="chk-cat">${esc(g.cat)}</div>`;
     g.items.forEach(t => {
-      const v = m[g.cat + '|' + t] || {};
-      h += `<div class="chk-fila" data-cat="${esc(g.cat)}" data-tarea="${esc(t)}"><input type="checkbox" ${v.hecho ? 'checked' : ''} aria-label="Hecho">
-        <div class="tarea">${esc(t)}</div><div class="est">
+      const v = m[g.cat + '|' + t.tarea] || {};
+      h += `<div class="chk-fila" data-cat="${esc(g.cat)}" data-tarea="${esc(t.tarea)}"><input type="checkbox" ${v.hecho ? 'checked' : ''} aria-label="Hecho">
+        <div class="tarea">${esc(t.tarea)}</div><div class="est">
         <label><input type="radio" name="e${i}" value="b" ${v.estado === 'b' ? 'checked' : ''}><span>OK</span></label>
         <label><input type="radio" name="e${i}" value="r" ${v.estado === 'r' ? 'checked' : ''}><span>Rev</span></label>
-        <label><input type="radio" name="e${i}" value="n" ${v.estado === 'n' ? 'checked' : ''}><span>N/A</span></label></div></div>`;
+        <label><input type="radio" name="e${i}" value="n" ${v.estado === 'n' ? 'checked' : ''}><span>N/A</span></label></div>
+        ${t.extra ? '<button type="button" class="quitar-t" title="Quitar tarea">✕</button>' : ''}</div>`;
       i++;
     });
   });
-  $('#checklist').innerHTML = h;
+  $('#checklist').innerHTML = h || '<div class="suave" style="padding:8px 2px">Agregue las tareas del trabajo con el botón de abajo.</div>';
+  $$('#checklist .quitar-t').forEach(b => b.onclick = () => { b.closest('.chk-fila').remove(); pintarChecklist(leerChecklist(), S.ot.tipo); autoguardar(); });
   contarChecklist();
+}
+function leerChecklist() {
+  return $$('.chk-fila').map(f => ({ cat: f.dataset.cat, tarea: f.dataset.tarea, hecho: $('input[type=checkbox]', f).checked, estado: ($('.est input:checked', f) || {}).value || '' }));
+}
+function agregarTarea() {
+  const t = $('#nueva-tarea').value.trim();
+  if (!t) { $('#nueva-tarea').focus(); return; }
+  const l = leerChecklist();
+  const cat = TIPOS[S.ot.tipo].libre ? 'Tareas' : 'Tareas adicionales';
+  if (l.some(x => x.cat === cat && x.tarea === t)) { toast('Esa tarea ya está en la lista.'); return; }
+  l.push({ cat, tarea: t, hecho: true, estado: 'b' });
+  pintarChecklist(l, S.ot.tipo);
+  $('#nueva-tarea').value = ''; autoguardar();
+}
+$('#btn-tarea').onclick = agregarTarea;
+$('#nueva-tarea').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregarTarea(); } });
+function pintarTec(tipo) {
+  const T = TIPOS[tipo];
+  $('#tec-titulo').textContent = T.tecTitulo;
+  $('#tec-campos').innerHTML = T.campos.map(f => `<label class="campo"><span>${esc(f.l)}</span><input name="t.${f.k}" placeholder="${esc(f.ph || '')}"${f.lista ? ` list="tl-${f.k}"` : ''}>
+    ${f.lista ? `<datalist id="tl-${f.k}">${f.lista.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`).join('');
 }
 function contarChecklist() {
   const f = $$('.chk-fila'); $('#chk-cont').textContent = f.filter(x => $('input[type=checkbox]', x).checked).length + ' de ' + f.length;
@@ -427,14 +446,17 @@ function llenarForm(ot) {
   f.reset();
   $$('input[name=tipoVisita]').forEach(r => r.checked = r.value === ot.tipoVisita);
   $$('input[name=estado]').forEach(r => r.checked = r.value === ot.estado);
-  pintarServicios(ot.servicios || []);
+  const tipo = tipoDe(ot);
+  pintarServicios(ot.servicios || [], tipo); pintarTec(tipo);
+  campo('titulo').value = ot.titulo || '';
+  $('#campo-titulo').style.display = TIPOS[tipo].libre ? '' : 'none';
   campo('fecha').value = ot.fecha || ''; campo('hora').value = ot.hora || '';
   CLI.forEach(k => campo('c.' + k).value = (ot.cliente || {})[k] || '');
-  TEC.forEach(k => campo('t.' + k).value = (ot.tec || {})[k] || '');
+  TIPOS[tipo].campos.forEach(f => campo('t.' + f.k).value = (ot.tec || {})[f.k] || '');
   campo('descripcion').value = ot.descripcion || ''; campo('observaciones').value = ot.observaciones || '';
   const p = ot.proxima || {};
   campo('p.fecha').value = p.fecha || ''; campo('p.tipo').value = p.tipo || ''; campo('p.recomendacion').value = p.recomendacion || '';
-  pintarChecklist(ot.checklist);
+  pintarChecklist(ot.checklist, tipo);
   $('#cli-buscar').value = ''; $('#cli-msg').textContent = '';
 }
 function leerForm() {
@@ -444,13 +466,16 @@ function leerForm() {
   o.estado = ($('input[name=estado]:checked') || {}).value || '';
   o.servicios = $$('input[name=servicio]:checked').map(x => x.value);
   o.cliente = Object.assign({ correo: S.ot.correo || (o.cliente && o.cliente.correo) || '' }, ...CLI.map(k => ({ [k]: campo('c.' + k).value.trim() })));
-  o.tec = Object.assign({}, ...TEC.map(k => ({ [k]: campo('t.' + k).value.trim() })));
-  o.checklist = $$('.chk-fila').map(f => ({ cat: f.dataset.cat, tarea: f.dataset.tarea, hecho: $('input[type=checkbox]', f).checked, estado: ($('.est input:checked', f) || {}).value || '' }));
+  const tipo = S.ot.tipo, T = TIPOS[tipo];
+  o.tipo = tipo; o.titulo = campo('titulo').value.trim();
+  o.tec = Object.assign({}, ...T.campos.map(f => ({ [f.k]: campo('t.' + f.k).value.trim() })));
+  o.tecCampos = T.campos.map(f => ({ k: f.k, l: f.l })); o.tecTitulo = T.tecTitulo;
+  o.checklist = leerChecklist();
   o.descripcion = campo('descripcion').value.trim(); o.observaciones = campo('observaciones').value.trim();
   o.proxima = { fecha: campo('p.fecha').value, tipo: campo('p.tipo').value, recomendacion: campo('p.recomendacion').value.trim() };
   o.fotos = S.ot.fotos.map(p => ({ src: p.src, caption: p.caption || '' }));
   o.firmas = JSON.parse(JSON.stringify(S.ot.firmas));
-  o.servicio = o.servicio || 'Limpieza de campana extractora';
+  o.servicio = T.libre ? (o.titulo || 'Otro trabajo') : T.nombre;
   return o;
 }
 $('#ot-form').addEventListener('input', e => { if (e.target.closest('.chk-fila')) contarChecklist(); autoguardar(); });
@@ -470,14 +495,14 @@ async function guardarBorrador() {
 }
 
 function abrirForm(ot, modo, extra) {
-  S.ot = Object.assign({ modo, base: ot, fotos: (ot.fotos || []).map(f => Object.assign({}, f)), firmas: JSON.parse(JSON.stringify(ot.firmas || {})), correo: (ot.cliente || {}).correo || '' }, extra || {});
+  S.ot = Object.assign({ modo, tipo: tipoDe(ot), base: ot, fotos: (ot.fotos || []).map(f => Object.assign({}, f)), firmas: JSON.parse(JSON.stringify(ot.firmas || {})), correo: (ot.cliente || {}).correo || '' }, extra || {});
   ['tecnico', 'supervisor', 'cliente'].forEach(k => S.ot.firmas[k] = S.ot.firmas[k] || { nombre: '', img: '' });
   $$('.panel').forEach(p => p.classList.toggle('activo', p.id === 'p-ot'));
   document.body.classList.add('en-ot');
   document.body.classList.toggle('lectura', modo === 'lectura');
   llenarForm(ot); pintarFotos(); pintarFirmas();
   $('#ot-num').textContent = ot.numero || 'Nueva OT · borrador';
-  $('#ot-sub').textContent = ot.servicio || 'Limpieza de campana extractora';
+  $('#ot-sub').textContent = TIPOS[S.ot.tipo].icono + ' ' + (ot.servicio || TIPOS[S.ot.tipo].nombre);
   const chip = $('#ot-chip');
   chip.className = 'chip ' + (modo === 'edicion' ? 'pend' : modo === 'nuevo' ? 'borr' : 'ok');
   chip.textContent = modo === 'edicion' ? 'Editando' : modo === 'nuevo' ? 'Borrador' : (ot.revision ? 'Rev ' + ot.revision : 'Enviada');
@@ -504,7 +529,7 @@ function accionesOT(modo) {
     b.push(['📄 Ver PDF', '', verPDF]);
     b.push(esAdmin() ? ['✏️ Editar', 'prim', empezarEdicion] : ['✉ Solicitar corrección', 'prim', solicitarCorreccion]);
   }
-  if (modo === 'edicion') b.push(['Cancelar', '', cancelarEdicion], ['💾 Guardar cambios', 'verde', guardarEdicion]);
+  if (modo === 'edicion') b.push(['Cancelar', '', cancelarEdicion], ['💾 Guardar cambios', 'verde', () => guardarEdicion()]);
   const c = $('#ot-acciones'); c.innerHTML = '';
   b.forEach(([t, cl, fn]) => { const el = document.createElement('button'); el.className = 'btn ' + cl; el.textContent = t; el.onclick = fn; c.appendChild(el); });
 }
@@ -518,8 +543,21 @@ $('[data-accion=volver]').onclick = () => history.state && history.state.ot ? hi
 $('[data-accion=nueva]').onclick = () => nuevaOT();
 window.addEventListener('popstate', () => { if (S.ot) volver(); });
 
+function elegirTipo() {
+  return new Promise(ok => {
+    $('#modal-txt').innerHTML = '<b style="font-size:17px">¿Qué tipo de trabajo?</b><div class="tipos">' +
+      ORDEN_TIPOS.map(t => `<button type="button" class="tipo-btn${TIPOS[t].libre ? ' libre' : ''}" data-t="${t}"><b>${TIPOS[t].icono}</b>${esc(TIPOS[t].libre ? 'Otro trabajo (llenar libre)' : TIPOS[t].corto)}</button>`).join('') + '</div>';
+    const cont = $('#modal-botones'); cont.innerHTML = '';
+    const c = document.createElement('button'); c.className = 'btn'; c.textContent = 'Cancelar';
+    c.onclick = () => { $('#modal').hidden = true; ok(null); }; cont.appendChild(c);
+    $$('#modal-txt .tipo-btn').forEach(b => b.onclick = () => { $('#modal').hidden = true; ok(b.dataset.t); });
+    $('#modal').hidden = false;
+  });
+}
 async function nuevaOT() {
-  const reg = { idLocal: uid(), estado: 'borrador', creada: Date.now(), ot: plantilla() };
+  const tipo = await elegirTipo();
+  if (!tipo) return;
+  const reg = { idLocal: uid(), estado: 'borrador', creada: Date.now(), ot: plantilla(tipo) };
   reg.ot.idLocal = reg.idLocal;
   await DB.guardar(reg);
   abrirForm(reg.ot, 'nuevo', { reg });
@@ -538,6 +576,7 @@ async function borrarBorrador() {
 }
 async function terminarYEnviar() {
   const ot = leerForm();
+  if (TIPOS[S.ot.tipo].libre && !ot.titulo) { toast('Escriba el nombre del trabajo.'); campo('titulo').focus(); return; }
   if (!ot.cliente.nombre) { toast('Falta el nombre del cliente.'); campo('c.nombre').focus(); return; }
   if (!ot.estado) { toast('Seleccione el estado de la OT.'); return; }
   const faltan = [];
@@ -595,12 +634,20 @@ async function empezarEdicion() {
   abrirForm(actual.base, 'edicion', { numero: actual.numero, revisionBase: actual.revisionBase, correccion: actual.correccion });
 }
 function cancelarEdicion() { const a = S.ot; abrirForm(a.base, 'lectura', { numero: a.numero, revisionBase: a.revisionBase, correccion: a.correccion }); }
-async function guardarEdicion(forzar) {
+async function guardarEdicion(forzar, avisoPDF) {
   const ot = leerForm();
   if (!ot.cliente.nombre) { toast('Falta el nombre del cliente.'); return; }
+  if (forzar !== true) {
+    const v = await modal(`<b>Guardar cambios de ${esc(S.ot.numero)}</b><br><span class="suave">Se guardará como revisión nueva y el PDF anterior se conserva en el Drive.</span>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:15px"><input type="checkbox" id="m-aviso" style="width:22px;height:22px;flex:none"${S.ot.base && S.ot.base.avisoPDF ? ' checked' : ''}>
+      <span>Mostrar en el PDF el aviso de modificación<br><small class="suave">Déjelo sin marcar para correcciones menores (un teléfono, un error de escritura).</small></span></label>`,
+      [{ texto: 'Cancelar', valor: null }, { texto: '💾 Guardar', clase: 'prim', valor: () => ({ aviso: $('#m-aviso').checked }) }]);
+    if (!v) return;
+    avisoPDF = v.aviso;
+  }
   cargando('Guardando revisión…');
   try {
-    const r = await api('editarOT', { numero: S.ot.numero, ot, revisionBase: S.ot.revisionBase, forzar: forzar === true }, null, 180000);
+    const r = await api('editarOT', { numero: S.ot.numero, ot, revisionBase: S.ot.revisionBase, forzar: forzar === true, avisoPDF: !!avisoPDF }, null, 180000);
     cargando(false);
     if (r.sinCambios) { toast('No hubo cambios.'); cancelarEdicion(); return; }
     toast(`✔ Guardada como revisión ${r.revision}`);
@@ -610,7 +657,7 @@ async function guardarEdicion(forzar) {
     cargando(false);
     if (e.codigo === 'conflicto') {
       const v = await modal(esc(e.message), [{ texto: 'Volver a abrirla', valor: 'recargar' }, { texto: 'Guardar de todos modos', clase: 'prim', valor: 'forzar' }]);
-      if (v === 'forzar') return guardarEdicion(true);
+      if (v === 'forzar') return guardarEdicion(true, avisoPDF);
       return abrirEnviada(S.ot.numero);
     }
     toast(e.codigo === 'offline' ? 'Necesita señal para guardar la edición.' : e.message);

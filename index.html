@@ -75,7 +75,7 @@
   <div id="p-ot" class="panel">
     <div class="ot-cab">
       <button class="btn-icono" data-accion="volver" title="Volver">←</button>
-      <div><div class="ot-num" id="ot-num">Borrador</div><div class="suave" id="ot-sub">Limpieza de campana extractora</div></div>
+      <div><div class="ot-num" id="ot-num">Borrador</div><div class="suave" id="ot-sub"></div></div>
       <span id="ot-chip" class="chip"></span>
     </div>
     <div id="ot-avisos"></div>
@@ -100,7 +100,8 @@
         <label><input type="radio" name="estado" value="Completado"><span>Completado</span></label>
         <label><input type="radio" name="estado" value="Garantía"><span>Garantía</span></label>
       </div>
-      <div class="sub-sec">Servicio</div>
+      <label class="campo" id="campo-titulo"><span>Nombre del trabajo *</span><input name="titulo" placeholder="Ej.: Instalación de cámaras, cambio de bomba…"></label>
+      <div class="sub-sec" id="lbl-servicios">Servicio</div>
       <div class="opciones" id="servicios"></div>
 
       <div class="sec">Datos del cliente</div>
@@ -118,22 +119,15 @@
       <label class="campo"><span>Dirección</span><input name="c.direccion"></label>
       <label class="campo"><span>Referencia / Zona</span><input name="c.zona"></label>
 
-      <div class="sec">Datos técnicos de la campana</div>
-      <div class="grid2">
-        <label class="campo"><span>Marca / Fabricante</span><input name="t.marca"></label>
-        <label class="campo"><span>Tipo de campana</span><input name="t.tipo" placeholder="Isla / Pared"></label>
-        <label class="campo"><span>Dimensiones (L x A)</span><input name="t.dim" placeholder="metros"></label>
-        <label class="campo"><span>N.° de filtros</span><input name="t.filtros" inputmode="numeric"></label>
-        <label class="campo"><span>Tipo de filtro</span><input name="t.tfiltro" placeholder="Malla / Bafle"></label>
-        <label class="campo"><span>Motor / Turbina</span><input name="t.motor" placeholder="HP / Voltaje"></label>
-        <label class="campo"><span>Longitud de ductos</span><input name="t.ductos" placeholder="metros"></label>
-        <label class="campo"><span>Ubicación</span><input name="t.ubic" placeholder="Cocina principal"></label>
-      </div>
+      <div class="sec" id="tec-titulo">Datos técnicos</div>
+      <div class="grid2" id="tec-campos"></div>
+      <datalist id="tec-listas"></datalist>
       <button type="button" class="btn ancho solo-edicion" id="cli-guardar">💾 Guardar cliente para todos</button>
 
       <div class="sec">Checklist de trabajo <span class="sec-cont" id="chk-cont"></span></div>
       <div class="solo-edicion chk-todo"><button type="button" class="btn peq" id="chk-todo">Marcar todo como hecho y OK</button></div>
       <div id="checklist"></div>
+      <div class="agregar-tarea solo-edicion"><input id="nueva-tarea" class="inp" placeholder="Agregar otra tarea…"><button type="button" class="btn" id="btn-tarea">＋ Agregar</button></div>
 
       <div class="sec">Descripción del trabajo realizado</div>
       <textarea name="descripcion" rows="6" placeholder="Trabajos realizados, condiciones encontradas, nivel de grasa, solución aplicada, hallazgos…"></textarea>
@@ -179,6 +173,7 @@
 <div id="cargando" class="cargando" hidden><div class="spinner"></div><div id="cargando-txt">Cargando…</div></div>
 
 <script src="config.js"></script>
+<script src="tipos.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
