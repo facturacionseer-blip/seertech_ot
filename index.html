@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A4A5C">
+<title>SEERTECH OT</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ============ INGRESO ============ -->
+<section id="v-ingreso" class="vista">
+  <div class="ingreso">
+    <img src="logo.jpg" alt="SEERTECH Solution" class="ingreso-logo">
+    <h1>Órdenes de Trabajo</h1>
+    <div class="tabs-ingreso">
+      <button class="tab-i activo" data-rol="tecnico">Soy técnico</button>
+      <button class="tab-i" data-rol="admin">Soy administrador</button>
+    </div>
+    <label class="lbl" id="ing-lbl">Código de técnico</label>
+    <input id="ing-valor" class="inp grande" autocomplete="off" autocapitalize="characters" placeholder="Ej.: SM-2847">
+    <button id="ing-entrar" class="btn prim ancho">Entrar</button>
+    <p id="ing-msg" class="msg"></p>
+    <details class="avanzado">
+      <summary>Configuración del servidor</summary>
+      <label class="lbl">URL del servidor (Apps Script)</label>
+      <input id="ing-api" class="inp" placeholder="https://script.google.com/macros/s/…/exec">
+    </details>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section id="v-app" class="vista">
+  <header class="barra-app">
+    <img src="icon-192.png" alt="" class="barra-icono">
+    <div class="barra-txt"><b id="app-usuario"></b><span id="app-estado"></span></div>
+    <button id="btn-sync" class="btn-icono" title="Sincronizar">⟳</button>
+  </header>
+
+  <!-- Lista: Mis OT (técnico) -->
+  <div id="p-mis" class="panel">
+    <div class="panel-top"><h2>Mis órdenes</h2><button class="btn prim" data-accion="nueva">＋ Nueva OT</button></div>
+    <div id="mis-lista" class="lista"></div>
+  </div>
+
+  <!-- Lista: Recibidas (admin) -->
+  <div id="p-recibidas" class="panel">
+    <div class="panel-top"><h2>📋 Órdenes recibidas</h2></div>
+    <input id="rec-filtro" class="inp buscar" type="search" placeholder="🔍 Filtrar por cliente, técnico o número">
+    <div class="chips-filtro" id="rec-chips">
+      <button class="chipf activo" data-f="todas">Todas</button>
+      <button class="chipf" data-f="correccion">Con corrección solicitada</button>
+      <button class="chipf" data-f="pendientes">Pendientes / en proceso</button>
+    </div>
+    <div id="rec-lista" class="lista"></div>
+  </div>
+
+  <!-- Ajustes -->
+  <div id="p-ajustes" class="panel">
+    <div class="panel-top"><h2>Ajustes</h2></div>
+    <div class="tarjeta">
+      <p><b id="aj-nombre"></b><br><span id="aj-rol" class="suave"></span></p>
+      <p class="suave" id="aj-version"></p>
+      <button class="btn ancho" id="aj-clientes">⟳ Actualizar lista de clientes</button>
+      <button class="btn ancho" id="aj-instalar" hidden>📲 Instalar la app en este celular</button>
+      <button class="btn peligro ancho" id="aj-salir">Cerrar sesión en este celular</button>
+    </div>
+  </div>
+
+  <!-- ============ FORMULARIO OT ============ -->
+  <div id="p-ot" class="panel">
+    <div class="ot-cab">
+      <button class="btn-icono" data-accion="volver" title="Volver">←</button>
+      <div><div class="ot-num" id="ot-num">Borrador</div><div class="suave" id="ot-sub">Limpieza de campana extractora</div></div>
+      <span id="ot-chip" class="chip"></span>
+    </div>
+    <div id="ot-avisos"></div>
+
+    <form id="ot-form" autocomplete="off" onsubmit="return false">
+      <div class="sec">General</div>
+      <div class="grid2">
+        <label class="campo"><span>Fecha</span><input type="date" name="fecha"></label>
+        <label class="campo"><span>Hora</span><input type="time" name="hora"></label>
+      </div>
+      <div class="sub-sec">Tipo de visita</div>
+      <div class="opciones" data-radio="tipoVisita">
+        <label><input type="radio" name="tipoVisita" value="Instalación"><span>Instalación</span></label>
+        <label><input type="radio" name="tipoVisita" value="Mantenimiento preventivo"><span>Mant. preventivo</span></label>
+        <label><input type="radio" name="tipoVisita" value="Mantenimiento correctivo"><span>Mant. correctivo</span></label>
+        <label><input type="radio" name="tipoVisita" value="Garantía"><span>Garantía</span></label>
+      </div>
+      <div class="sub-sec">Estado</div>
+      <div class="opciones" data-radio="estado">
+        <label><input type="radio" name="estado" value="Pendiente"><span>Pendiente</span></label>
+        <label><input type="radio" name="estado" value="En proceso"><span>En proceso</span></label>
+        <label><input type="radio" name="estado" value="Completado"><span>Completado</span></label>
+        <label><input type="radio" name="estado" value="Garantía"><span>Garantía</span></label>
+      </div>
+      <div class="sub-sec">Servicio</div>
+      <div class="opciones" id="servicios"></div>
+
+      <div class="sec">Datos del cliente</div>
+      <div class="buscador-cli solo-edicion">
+        <input id="cli-buscar" class="inp buscar" type="search" list="cli-lista" placeholder="🔍 Buscar cliente guardado…">
+        <datalist id="cli-lista"></datalist>
+      </div>
+      <p id="cli-msg" class="msg ok"></p>
+      <label class="campo"><span>Nombre / Razón social *</span><input name="c.nombre"></label>
+      <label class="campo"><span>Nombre comercial</span><input name="c.comercial"></label>
+      <div class="grid2">
+        <label class="campo"><span>Contacto</span><input name="c.contacto"></label>
+        <label class="campo"><span>Teléfono</span><input name="c.telefono" type="tel"></label>
+      </div>
+      <label class="campo"><span>Dirección</span><input name="c.direccion"></label>
+      <label class="campo"><span>Referencia / Zona</span><input name="c.zona"></label>
+
+      <div class="sec">Datos técnicos de la campana</div>
+      <div class="grid2">
+        <label class="campo"><span>Marca / Fabricante</span><input name="t.marca"></label>
+        <label class="campo"><span>Tipo de campana</span><input name="t.tipo" placeholder="Isla / Pared"></label>
+        <label class="campo"><span>Dimensiones (L x A)</span><input name="t.dim" placeholder="metros"></label>
+        <label class="campo"><span>N.° de filtros</span><input name="t.filtros" inputmode="numeric"></label>
+        <label class="campo"><span>Tipo de filtro</span><input name="t.tfiltro" placeholder="Malla / Bafle"></label>
+        <label class="campo"><span>Motor / Turbina</span><input name="t.motor" placeholder="HP / Voltaje"></label>
+        <label class="campo"><span>Longitud de ductos</span><input name="t.ductos" placeholder="metros"></label>
+        <label class="campo"><span>Ubicación</span><input name="t.ubic" placeholder="Cocina principal"></label>
+      </div>
+      <button type="button" class="btn ancho solo-edicion" id="cli-guardar">💾 Guardar cliente para todos</button>
+
+      <div class="sec">Checklist de trabajo <span class="sec-cont" id="chk-cont"></span></div>
+      <div class="solo-edicion chk-todo"><button type="button" class="btn peq" id="chk-todo">Marcar todo como hecho y OK</button></div>
+      <div id="checklist"></div>
+
+      <div class="sec">Descripción del trabajo realizado</div>
+      <textarea name="descripcion" rows="6" placeholder="Trabajos realizados, condiciones encontradas, nivel de grasa, solución aplicada, hallazgos…"></textarea>
+
+      <div class="sec">Próxima visita / Recomendaciones</div>
+      <div class="grid2">
+        <label class="campo"><span>Fecha próxima visita</span><input type="date" name="p.fecha"></label>
+        <label class="campo"><span>Tipo de visita</span>
+          <select name="p.tipo"><option value="">Seleccionar…</option><option>Mantenimiento preventivo</option><option>Revisión de seguimiento</option><option>Garantía</option><option>Instalación pendiente</option></select>
+        </label>
+      </div>
+      <label class="campo"><span>Recomendación principal</span><input name="p.recomendacion"></label>
+
+      <div class="sec">Observaciones adicionales</div>
+      <textarea name="observaciones" rows="3" placeholder="Notas, pendientes, condiciones especiales…"></textarea>
+
+      <div class="sec">Fotografías de evidencia <span class="sec-cont" id="foto-cont">0 / 8</span></div>
+      <div class="foto-botones solo-edicion">
+        <button type="button" class="btn prim" id="btn-camara">📷 Tomar foto</button>
+        <button type="button" class="btn" id="btn-galeria">🖼 Galería</button>
+      </div>
+      <input type="file" id="in-camara" accept="image/*" capture="environment" hidden>
+      <input type="file" id="in-galeria" accept="image/*" multiple hidden>
+      <div class="fotos" id="fotos"></div>
+
+      <div class="sec">Firmas y conformidad</div>
+      <div class="firmas">
+        <div class="firma" data-firma="tecnico"><div class="firma-t">Técnico responsable</div><canvas width="600" height="220"></canvas><button type="button" class="firma-x solo-edicion">✕ Borrar</button><input placeholder="Nombre completo" data-nombre></div>
+        <div class="firma" data-firma="supervisor"><div class="firma-t">Supervisado por</div><canvas width="600" height="220"></canvas><button type="button" class="firma-x solo-edicion">✕ Borrar</button><input placeholder="Nombre completo" data-nombre></div>
+        <div class="firma" data-firma="cliente"><div class="firma-t">Conforme — Cliente</div><canvas width="600" height="220"></canvas><button type="button" class="firma-x solo-edicion">✕ Borrar</button><input placeholder="Nombre y cargo" data-nombre></div>
+      </div>
+      <p class="suave centro solo-edicion">Firme con el dedo dentro de cada recuadro.</p>
+    </form>
+
+    <div class="ot-acciones" id="ot-acciones"></div>
+  </div>
+
+  <nav class="tabs" id="tabs"></nav>
+</section>
+
+<div id="modal" class="modal" hidden><div class="modal-caja"><div id="modal-txt"></div><div id="modal-botones" class="modal-botones"></div></div></div>
+<div id="toast" class="toast"></div>
+<div id="cargando" class="cargando" hidden><div class="spinner"></div><div id="cargando-txt">Cargando…</div></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
