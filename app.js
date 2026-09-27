@@ -1,6 +1,6 @@
 /* SEERTECH · Órdenes de Trabajo — app para técnicos y administrador */
 'use strict';
-const VERSION_APP = '1.2.1';
+const VERSION_APP = '1.3.0';
 const MAX_FOTOS = 8;
 const TIPOS = window.TIPOS_OT, ORDEN_TIPOS = window.ORDEN_TIPOS;
 const tipoDe = ot => (ot && TIPOS[ot.tipo]) ? ot.tipo : 'campana';
@@ -574,11 +574,27 @@ async function borrarBorrador() {
   panel('p-mis');
   toast('Borrador eliminado'); estadoBarra();
 }
+/* Revisa lo obligatorio; si falta algo, avisa, lo marca en rojo y lleva al primer apartado incompleto. */
+async function validarObligatorios(ot) {
+  $$('.falta').forEach(e => e.classList.remove('falta'));
+  const libre = TIPOS[S.ot.tipo].libre, faltan = [];
+  if (libre && !ot.titulo) faltan.push(['Nombre del trabajo', $('#campo-titulo')]);
+  if (!ot.tipoVisita) faltan.push(['Tipo de visita', $('[data-radio=tipoVisita]')]);
+  if (!ot.estado) faltan.push(['Estado', $('[data-radio=estado]')]);
+  if (!libre && !ot.servicios.length) faltan.push(['Servicio (marque al menos uno)', $('#servicios')]);
+  if (!ot.cliente.nombre) faltan.push(['Nombre del cliente', campo('c.nombre').closest('.campo')]);
+  if (!faltan.length) return true;
+  faltan.forEach(f => f[1] && f[1].classList.add('falta'));
+  await modal('<b>No se puede enviar todavía.</b><br>Complete estos apartados:<ul style="margin:8px 0 0;padding-left:20px">' +
+    faltan.map(f => `<li>${esc(f[0])}</li>`).join('') + '</ul>', [{ texto: 'Completar', clase: 'prim' }]);
+  const primero = faltan[0][1];
+  if (primero) primero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return false;
+}
+$('#ot-form').addEventListener('change', e => { const f = e.target.closest('.falta'); if (f) f.classList.remove('falta'); });
 async function terminarYEnviar() {
   const ot = leerForm();
-  if (TIPOS[S.ot.tipo].libre && !ot.titulo) { toast('Escriba el nombre del trabajo.'); campo('titulo').focus(); return; }
-  if (!ot.cliente.nombre) { toast('Falta el nombre del cliente.'); campo('c.nombre').focus(); return; }
-  if (!ot.estado) { toast('Seleccione el estado de la OT.'); return; }
+  if (!(await validarObligatorios(ot))) return;
   const faltan = [];
   if (!ot.firmas.cliente.img) faltan.push('la firma del cliente');
   if (!ot.firmas.tecnico.img) faltan.push('la firma del técnico');
@@ -636,7 +652,7 @@ async function empezarEdicion() {
 function cancelarEdicion() { const a = S.ot; abrirForm(a.base, 'lectura', { numero: a.numero, revisionBase: a.revisionBase, correccion: a.correccion }); }
 async function guardarEdicion(forzar, avisoPDF) {
   const ot = leerForm();
-  if (!ot.cliente.nombre) { toast('Falta el nombre del cliente.'); return; }
+  if (!(await validarObligatorios(ot))) return;
   if (forzar !== true) {
     const v = await modal(`<b>Guardar cambios de ${esc(S.ot.numero)}</b><br><span class="suave">Se guardará como revisión nueva y el PDF anterior se conserva en el Drive.</span>
       <label style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:15px"><input type="checkbox" id="m-aviso" style="width:22px;height:22px;flex:none"${S.ot.base && S.ot.base.avisoPDF ? ' checked' : ''}>

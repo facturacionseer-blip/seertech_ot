@@ -128,3 +128,6 @@ body.lectura .quitar-t{display:none}
 .tipo-btn b{font-size:28px}.tipo-btn:active{background:#eef6f9;border-color:var(--azul)}
 .tipo-btn.libre{grid-column:1/-1;flex-direction:row;justify-content:center;border-style:dashed}
 .item .tipo-ic{font-size:18px;margin-right:4px}
+
+.falta{outline:2px solid var(--rojo);outline-offset:4px;border-radius:8px;background:#fdecea}
+.opciones.falta span{border-color:var(--rojo)}
