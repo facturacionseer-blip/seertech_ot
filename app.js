@@ -1,6 +1,6 @@
 /* SEERTECH · Órdenes de Trabajo — app para técnicos y administrador */
 'use strict';
-const VERSION_APP = '1.2.0';
+const VERSION_APP = '1.2.1';
 const MAX_FOTOS = 8;
 const TIPOS = window.TIPOS_OT, ORDEN_TIPOS = window.ORDEN_TIPOS;
 const tipoDe = ot => (ot && TIPOS[ot.tipo]) ? ot.tipo : 'campana';

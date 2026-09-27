@@ -1,5 +1,5 @@
 // Service worker: la app funciona sin señal. Primero intenta la red (para recibir actualizaciones) y si no hay, usa la copia guardada.
-const CACHE = 'seertech-ot-v3';
+const CACHE = 'seertech-ot-v4';
 const ARCHIVOS = ['./', 'index.html', 'app.js', 'app.css', 'config.js', 'tipos.js', 'manifest.json', 'logo.jpg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
